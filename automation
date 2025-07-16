@@ -10,7 +10,7 @@ const NOME_ABA_DESTINO     = "NOME DA ABA";
 const COLUNA_GATILHO       = "AR"; // Coluna que contém o texto para mover
 const TEXTO_PARA_MOVER     = "Mover";
 
-const LISTA_EMAILS_NOTIFICACAO = "raquel_indelicato@whirlpool.com,esther_reis@whirlpool.com,guilherme_vaz@whirlpool.com,milena_borges@whirlpool.com,eduardo_ribeiro@whirlpool.com,patricia_c_mattos@whirlpool.com,jaqueline_batista_jbplan@whirlpool.com";
+const LISTA_EMAILS_NOTIFICACAO = "EMAILS,SEPARADOS,POR,VIRGULA";
 
 // ========================================================================
 // FUNÇÕES DE INTERFACE DO USUÁRIO (UI)
