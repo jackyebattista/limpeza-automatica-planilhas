@@ -19,33 +19,14 @@ const NOME_DA_ABA_MONITORADA = "Lançamentos";
  */
 const FORMULAS_E_CELULAS = {
 
-  // --- FÓRMULA 1: Busca o CENTRO DE CUSTO ---
-  // OBJETIVO: Preenche o Centro de Custo com base no "Tipo de Lançamento" (coluna Q).
-  // - Se Q for "Único Jurídico", busca o "Motivo" (T) na aba 'Oções forms e de-para' (colunas C:G).
-  // - Se Q for "Único outra diretoria", copia o valor da coluna V.
-  // - Se Q for "Rateio", apenas escreve "Rateio".
-  // - PONTO DE EDIÇÃO: Se a tabela na aba 'Oções forms e de-para' mudar, ajuste o intervalo 'C:G'.
-  'Z2': '=ARRAYFORMULA(IF(A2:A="";;IF(Q2:Q="Rateio"; "Rateio";IF(Q2:Q="Único Jurídico"; IFERROR(VLOOKUP(T2:T; \'Oções forms e de-para\'!C:G; 5; FALSE); "Verificar");IF(Q2:Q="Único outra diretoria"; V2:V; "")))))',
+  // --- FÓRMULA 1: COLOQUE A FORMULA QUE PRECISA, COMEÇANDO COM A CELULA E DEPOIS O NOME DA FUNÇÃO - USANDO ARRAYFORMULA
+  // - PONTO DE EDIÇÃO: DEIXE OS PONTOS DE ATENÇÃO
+  'Z2': '=ARRAYFORMULA(IF(A2:A="";;IF(Q2:Q="X"; "X";IF(Q2:Q="Y"; IFERROR(VLOOKUP(T2:T; \'Oções forms e de-para\'!C:G; 5; FALSE); "Verificar");IF(Q2:Q="H"; V2:V; "")))))',
 
 
-  // --- FÓRMULA 2: Busca a CONTA CONTÁBIL ---
-  // OBJETIVO: Preenche a Conta Contábil.
-  // - Busca o "Subgrupo" (coluna X) na aba 'Oções forms e de-para' (colunas L:M) para achar a conta.
-  // - Se o lançamento for "Rateio", apenas escreve "Rateio".
-  // - PONTO DE EDIÇÃO: Se a tabela na aba 'Oções forms e de-para' mudar, ajuste o intervalo 'L:M'.
-  'AA2': '=ARRAYFORMULA(IF(A2:A="";;IFERROR(IF(Q2:Q="Rateio"; "Rateio";VLOOKUP(X2:X; \'Oções forms e de-para\'!L:M; 2; FALSE)); "Verificar")))',
-
-
-  // --- FÓRMULA 3: Busca o APROVADOR FINANCEIRO ---
-  // OBJETIVO: Identifica o Aprovador com base na Conta Contábil.
-  // - Usa a Conta Contábil (coluna AA) e a procura na aba 'Validação' (colunas L:O) para achar o aprovador.
-  // - PONTO DE EDIÇÃO: Se a sua matriz de aprovadores na aba 'Validação' mudar, ajuste o intervalo 'L:O'.
-  'AL2': '=ARRAYFORMULA(IF(A2:A=""; "";IFERROR(VLOOKUP(AA2:AA; \'Validação\'!L:O; 3; FALSE);"Verificar")))',
-
-
-  // --- FÓRMULA 4: Define o STATUS DE ARQUIVAMENTO ("Mover" ou "Manter") ---
+  // --- FÓRMULA DE LIMPEZA: Define o STATUS DE ARQUIVAMENTO ("Mover" ou "Manter") ---
   // OBJETIVO: Decide se a linha está pronta para ser arquivada pelo robô.
-  // CONDIÇÕES: Marca como "Mover" se a DATA (B) for 4 meses ou mais antiga E o STATUS (AC) for "Finalizado" ou "cancelada".
+  // CONDIÇÕES: Marca como "Mover" se a DATA (B) for 4 meses ou mais antiga E o STATUS for "Finalizado" ou "cancelada".
   // - PONTO DE EDIÇÃO 1 (TEMPO): Para mudar o tempo de arquivamento, altere o número -4 (que significa 4 meses). Ex: para 6 meses, use -6.
   // - PONTO DE EDIÇÃO 2 (STATUS): Se os nomes dos status mudarem, altere os textos "Finalizado" e "cancelada" aqui na fórmula.
   'AR2': '=ARRAYFORMULA(IF(A2:A = "";;IF((B2:B <= EDATE(TODAY(); -4)) * ((AC2:AC = "Finalizado") + (AC2:AC = "cancelada"));"Mover"; "Manter")))'
