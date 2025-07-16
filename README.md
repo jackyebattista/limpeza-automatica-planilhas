@@ -60,5 +60,5 @@ Sua ajuda é muito bem-vinda para tornar este projeto ainda melhor!
     5.  Abra um **Pull Request**.
 
 ---
-Feito com ❤️ eum pouquinho de ódio por Jaqueline Battista (https://github.com/jackyebattista).
+Feito com ❤️ e um pouquinho de ódio por Jaqueline Battista (https://github.com/jackyebattista).
 https://br.linkedin.com/in/jaquelinebattista
