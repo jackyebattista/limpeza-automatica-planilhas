@@ -3,20 +3,14 @@
 // =================================================================
 
 /**
- * @desc O nome exato da aba (planilha) onde as fórmulas devem ser protegidas.
- * IMPORTANTE: O nome deve estar entre aspas e ser idêntico ao da sua planilha (maiúsculas e minúsculas contam).
- * @example const NOME_DA_ABA_MONITORADA = "Lançamentos";
- */
+ * @desc O nome exato da aba (planilha) onde as fórmulas devem ser protegidas.
+ */
 const NOME_DA_ABA_MONITORADA = "Lançamentos";
 
 
 /**
- * @desc Lista das fórmulas e suas respectivas células.
- * Siga o formato: 'CÉLULA': '=SUA_FÓRMULA',
- * - A CÉLULA deve estar entre aspas simples. Ex: 'Z2'
- * - A FÓRMULA deve começar com '=' e estar entre aspas simples. Ex: '=SOMA(A:A)'
- * - Use uma vírgula (,) para separar cada item da lista, exceto o último.
- */
+ * @desc Lista das fórmulas e suas respectivas células.
+ */
 const FORMULAS_E_CELULAS = {
 
   // --- FÓRMULA 1: COLOQUE A FORMULA QUE PRECISA, COMEÇANDO COM A CELULA E DEPOIS O NOME DA FUNÇÃO - USANDO ARRAYFORMULA
@@ -32,65 +26,108 @@ const FORMULAS_E_CELULAS = {
   'AR2': '=ARRAYFORMULA(IF(A2:A = "";;IF((B2:B <= EDATE(TODAY(); -4)) * ((AC2:AC = "Finalizado") + (AC2:AC = "cancelada"));"Mover"; "Manter")))'
 };
 
+
 // =================================================================
 // FIM DA ÁREA DE CONFIGURAÇÃO
 // Não altere o código abaixo desta linha para garantir o funcionamento.
 // =================================================================
 
+// Objeto auxiliar para mapear colunas protegidas para uma busca rápida.
+const COLUNAS_PROTEGIDAS = {};
+for (const celula in FORMULAS_E_CELULAS) {
+  const range = SpreadsheetApp.getActiveSpreadsheet().getRange(NOME_DA_ABA_MONITORADA + '!' + celula);
+  COLUNAS_PROTEGIDAS[range.getColumn()] = {
+    celulaRaiz: celula,
+    linhaRaiz: range.getRow()
+  };
+}
+
 
 /**
- * @summary Gatilho que restaura a fórmula se for apagada/sobrescrita manualmente.
- * @param {Object} e O objeto de evento do gatilho onEdit.
- */
+ * @summary Gatilho que restaura a fórmula se for apagada em qualquer lugar da coluna.
+ * @param {Object} e O objeto de evento do gatilho onEdit.
+ */
 function onEdit(e) {
-  const range = e.range;
-  const sheet = range.getSheet();
-  
-  if (sheet.getName() !== NOME_DA_ABA_MONITORADA) {
-    return;
-  }
-  
-  const editedCellA1 = range.getA1Notation();
-  
-  if (FORMULAS_E_CELULAS.hasOwnProperty(editedCellA1)) {
-    
-    if (range.getFormula() !== FORMULAS_E_CELULAS[editedCellA1]) {
+  const range = e.range;
+  const sheet = range.getSheet();
 
-      const formulaRow = range.getRow();
-      const formulaCol = range.getColumn();
-      const lastRow = sheet.getMaxRows();
-      const numRowsToClear = lastRow - formulaRow;
+  // 1. Verifica se a edição foi na aba correta.
+  if (sheet.getName() !== NOME_DA_ABA_MONITORADA) {
+    return;
+  }
+  
+  const editedCol = range.getColumn();
+
+  // 2. Verifica se a coluna editada é uma das colunas protegidas.
+  if (COLUNAS_PROTEGIDAS.hasOwnProperty(editedCol)) {
+    const protecao = COLUNAS_PROTEGIDAS[editedCol];
+    const celulaRaiz = protecao.celulaRaiz; // Ex: 'Z2'
+    const linhaRaiz = protecao.linhaRaiz;   // Ex: 2
+    
+    // 3. Garante que a edição não foi acima da célula da fórmula.
+    if (range.getRow() < linhaRaiz) {
+      return;
+    }
+
+    // Ação de restauração
+    const formulaCell = sheet.getRange(celulaRaiz);
+    const formula = FORMULAS_E_CELULAS[celulaRaiz];
+
+    // Se a fórmula na célula raiz já estiver correta, não faz nada.
+    // Isso evita restaurações desnecessárias se o próprio Google estiver atualizando a fórmula.
+    if (formulaCell.getFormula() === formula) {
+      // Opcional: Forçar a restauração mesmo assim, descomentando as linhas abaixo.
+      // Isso pode ser útil se o usuário conseguir quebrar a #REF! sem alterar a célula raiz.
+      // range.clearContent(); // Limpa a célula que o usuário editou.
+      // SpreadsheetApp.flush(); // Aplica a limpeza.
+    }
+
+    // Restaura a fórmula
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      `Detectada alteração manual na coluna protegida. Restaurando fórmula em ${celulaRaiz}...`,
+      'Aviso de Proteção',
+      7
+    );
+
+    const maxRows = sheet.getMaxRows();
+    const numRowsToClear = maxRows - linhaRaiz;
+    
+    // Limpa a coluna abaixo da célula da fórmula
+    if (numRowsToClear > 0) {
+      sheet.getRange(linhaRaiz + 1, editedCol, numRowsToClear, 1).clearContent();
+    }
+    
+    // Restaura a fórmula na célula raiz
+    formulaCell.setFormula(formula);
+  }
+}
+
+
+/**
+ * @summary Restaura todas as fórmulas protegidas nas células configuradas.
+ * Use esta função para garantir fórmulas após processamento em lote.
+ */
+function restaurarFormulasProtegidas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NOME_DA_ABA_MONITORADA);
+  if (!sheet) throw new Error('Aba monitorada não encontrada!');
+
+  const maxRows = sheet.getMaxRows();
+
+  for (const celula in FORMULAS_E_CELULAS) {
+    if (FORMULAS_E_CELULAS.hasOwnProperty(celula)) {
+      const formulaCell = sheet.getRange(celula);
+      const formulaRow = formulaCell.getRow();
+      const formulaCol = formulaCell.getColumn();
       
+      const numRowsToClear = maxRows - formulaRow;
+
       if (numRowsToClear > 0) {
         const rangeToClear = sheet.getRange(formulaRow + 1, formulaCol, numRowsToClear, 1);
         rangeToClear.clearContent();
       }
-      
-      range.setFormula(FORMULAS_E_CELULAS[editedCellA1]);
-      
-      SpreadsheetApp.getActiveSpreadsheet().toast(
-        `A fórmula protegida da célula ${editedCellA1} foi restaurada.`, 
-        'Aviso de Proteção', 
-        5
-      );
-    }
-  }
-}
 
-/**
- * @summary Restaura todas as fórmulas protegidas nas células configuradas.
- * Use esta função para garantir fórmulas após processamento em lote.
- * Ela pode ser chamada manualmente ou pelo script de automação master.
- */
-function restaurarFormulasProtegidas() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(NOME_DA_ABA_MONITORADA);
-  if (!sheet) throw new Error('Aba monitorada não encontrada!');
-
-  for (var celula in FORMULAS_E_CELULAS) {
-    if (FORMULAS_E_CELULAS.hasOwnProperty(celula)) {
-      sheet.getRange(celula).setFormula(FORMULAS_E_CELULAS[celula]);
-    }
-  }
+      formulaCell.setFormula(FORMULAS_E_CELULAS[celula]);
+    }
+  }
 }
-```
